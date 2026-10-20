@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sucrocan Warehouse Tracker</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d2b4e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Warehouse">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<script src="config.js"></script>
+<style>
+:root {
+  --blue-dark:  #0d2b4e;
+  --blue:       #1a4a7c;
+  --blue-light: #2563a8;
+  --accent:     #f59e0b;
+  --green:      #16a34a;
+  --red:        #dc2626;
+  --gray-50:    #f8fafc;
+  --gray-100:   #f1f5f9;
+  --gray-200:   #e2e8f0;
+  --gray-300:   #cbd5e1;
+  --gray-600:   #475569;
+  --gray-800:   #1e293b;
+  --white:      #ffffff;
+  --shadow:     0 2px 8px rgba(0,0,0,0.12);
+  --radius:     8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-800);
+  min-height: 100vh;
+  padding-bottom: 90px;
+}
+
+/* ── Header ── */
+#app-header {
+  background: var(--blue-dark);
+  color: var(--white);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+#app-header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; }
+#app-header .sub { font-size: .72rem; opacity: .75; }
+#header-right { display: flex; gap: 6px; flex-shrink: 0; }
+.header-btn {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .78rem;
+}
+.header-btn:hover { background: rgba(255,255,255,.25); }
+
+/* ── Section jump bar ── */
+#jump-wrap {
+  background: var(--blue);
+  overflow-x: auto;
+  position: sticky;
+  top: 58px;
+  z-index: 90;
+}
+#jump-bar { display: flex; min-width: max-content; padding: 0 10px; }
+.jump {
+  padding: 10px 12px;
+  color: rgba(255,255,255,.7);
+  font-size: .76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+.jump:hover { color: #fff; border-bottom-color: var(--accent); }
+
+/* ── Main ── */
+#main { padding: 16px; max-width: 900px; margin: 0 auto; }
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  overflow: hidden;
+  scroll-margin-top: 110px;
+}
+.card-header {
+  background: var(--blue-dark);
+  color: var(--white);
+  padding: 12px 16px;
+  font-size: .95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-header .tag { margin-left: auto; font-size: .72rem; font-weight: 600; background: rgba(255,255,255,.15); padding: 3px 8px; border-radius: 10px; }
+.card-body { padding: 16px; }
+.hint { font-size: .8rem; color: var(--gray-600); margin-bottom: 12px; line-height: 1.4; }
+
+/* ── Forms ── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+label { font-size: .76rem; font-weight: 600; color: var(--gray-600); }
+label .req { color: var(--red); }
+input, select, textarea {
+  font: inherit;
+  font-size: .95rem;
+  padding: 9px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--gray-800);
+  width: 100%;
+  min-width: 0;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue-light); outline-offset: -1px; border-color: var(--blue-light); }
+textarea { resize: vertical; min-height: 70px; }
+input[readonly] { background: var(--gray-100); }
+.invalid { border-color: var(--red) !important; background: #fef2f2 !important; }
+.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; font-weight: 500; color: var(--gray-800); }
+.check input { width: 20px; height: 20px; }
+
+/* ── Tables ── */
+.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tbl th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-600); padding: 6px; border-bottom: 2px solid var(--gray-200); }
+.tbl td { padding: 6px; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+.tbl td input { padding: 8px; }
+.tbl .num { width: 110px; }
+.tbl .mt { color: var(--gray-600); font-size: .8rem; white-space: nowrap; }
+
+/* ── Repeating rows (loads, downtime…) ── */
+.row-box {
+  border: 1px solid var(--gray-200);
+  border-left: 4px solid var(--blue-light);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--gray-50);
+}
+.row-box.err { border-left-color: var(--red); }
+.row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: .88rem; color: var(--blue-dark); }
+.rm-btn { background: none; border: 1px solid var(--gray-300); color: var(--red); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: .78rem; }
+.add-btn {
+  background: var(--white);
+  border: 2px dashed var(--blue-light);
+  color: var(--blue-light);
+  border-radius: 6px;
+  padding: 10px;
+  width: 100%;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: .88rem;
+}
+.add-btn:hover { background: #eff6ff; }
+.empty { font-size: .85rem; color: var(--gray-600); font-style: italic; margin-bottom: 12px; }
+
+/* ── Totals strips ── */
+.totals { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.tot { background: #eff6ff; border-radius: 6px; padding: 8px 10px; }
+.tot .k { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-600); }
+.tot .v { font-size: 1.05rem; font-weight: 700; color: var(--blue-dark); }
+
+/* ── Photos ── */
+.photo-slot { border: 1px solid var(--gray-200); border-radius: 6px; padding: 10px; background: var(--gray-50); }
+.photo-slot.invalid { border-color: var(--red) !important; }
+.photo-slot .ttl { font-weight: 700; font-size: .85rem; margin-bottom: 8px; color: var(--blue-dark); }
+.photo-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--blue-light); color: #fff; border: none; border-radius: 6px;
+  padding: 8px 12px; cursor: pointer; font-size: .82rem; font-weight: 600;
+}
+.photo-btn.secondary { background: var(--white); color: var(--blue-light); border: 1px solid var(--blue-light); }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.thumb { position: relative; width: 72px; height: 72px; border-radius: 6px; overflow: hidden; border: 1px solid var(--gray-300); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .x { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,.65); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: .75rem; }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+
+/* ── Bottom bar ── */
+#bottom-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
+  box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 95;
+}
+#bottom-stats { flex: 1; display: flex; gap: 16px; font-size: .78rem; color: var(--gray-600); overflow-x: auto; white-space: nowrap; }
+#bottom-stats b { color: var(--blue-dark); font-size: .95rem; }
+.btn-submit {
+  background: var(--green); color: #fff; border: none; border-radius: 8px;
+  padding: 12px 18px; font-weight: 700; font-size: .92rem; cursor: pointer; flex-shrink: 0;
+}
+.btn-submit:disabled { opacity: .6; cursor: wait; }
+
+/* ── Modal ── */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+.modal.open { display: flex; }
+.modal-box { background: #fff; border-radius: 10px; max-width: 640px; width: 100%; max-height: 88vh; overflow: auto; }
+.modal-head { background: var(--blue-dark); color: #fff; padding: 14px 18px; font-weight: 700; position: sticky; top: 0; }
+.modal-body { padding: 16px 18px; font-size: .88rem; }
+.modal-foot { padding: 12px 18px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--gray-200); position: sticky; bottom: 0; background: #fff; }
+.btn { border: 1px solid var(--gray-300); background: #fff; border-radius: 6px; padding: 9px 14px; cursor: pointer; font-weight: 600; }
+.btn.primary { background: var(--green); color: #fff; border-color: var(--green); }
+.err-list { color: var(--red); padding-left: 18px; line-height: 1.6; }
+.sum-tbl { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.sum-tbl td { padding: 4px 6px; border-bottom: 1px solid var(--gray-200); }
+.sum-tbl td:last-child { text-align: right; font-weight: 600; }
+.sum-h { font-weight: 700; color: var(--blue-dark); margin: 12px 0 4px; }
+
+#toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--gray-800); color: #fff; padding: 10px 16px; border-radius: 8px;
+  font-size: .88rem; opacity: 0; pointer-events: none; transition: all .25s; z-index: 300; max-width: 90vw;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#draft-banner { display: none; background: #fffbeb; border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: .85rem; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  #main { padding: 12px; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .tbl .num { width: 80px; }
+  #app-header .sub, .hide-sm { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header id="app-header">
+  <div>
+    <h1>📦 Warehouse<span class="hide-sm"> Shift Report</span></h1>
+    <div class="sub">Sucrocan Canada Inc. — Sherman Refinery</div>
+  </div>
+  <div id="header-right">
+    <button class="header-btn" onclick="showHistory()">History</button>
+    <button class="header-btn" onclick="saveDraft(true)">Save draft</button>
+  </div>
+</header>
+
+<nav id="jump-wrap"><div id="jump-bar">
+  <a class="jump" href="#sec-shift">Shift</a>
+  <a class="jump" href="#sec-crew">Crew</a>
+  <a class="jump" href="#sec-loads">Loads</a>
+  <a class="jump" href="#sec-packaged">Totes &amp; Bags</a>
+  <a class="jump" href="#sec-molasses">Molasses</a>
+  <a class="jump" href="#sec-inventory">Inventory</a>
+  <a class="jump" href="#sec-supplies">Supplies</a>
+  <a class="jump" href="#sec-downtime">Downtime</a>
+  <a class="jump" href="#sec-housekeeping">Housekeeping</a>
+  <a class="jump" href="#sec-notes">Notes</a>
+</div></nav>
+
+<main id="main">
+
+  <div id="draft-banner">
+    <span>📝 You have an unsent draft from <b id="draft-when"></b>.</span>
+    <button class="btn" onclick="restoreDraft()">Restore it</button>
+    <button class="btn" onclick="discardDraft()">Discard</button>
+  </div>
+
+  <!-- 1. SHIFT -->
+  <section class="card" id="sec-shift">
+    <div class="card-header">📋 Shift Information</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>Date <span class="req">*</span></label><input type="date" id="s-date"></div>
+        <div class="field"><label>Shift <span class="req">*</span></label>
+          <select id="s-shift" onchange="onShiftChange()"><option value="Day">Day</option><option value="Night">Night</option></select></div>
+        <div class="field"><label>Start</label><input type="time" id="s-start" readonly></div>
+        <div class="field"><label>End</label><input type="time" id="s-end" readonly></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. CREW -->
+  <section class="card" id="sec-crew">
+    <div class="card-header">👷 Crew on Shift</div>
+    <div class="card-body">
+      <p class="hint">One supervisor, two loaders (bulk rail car / liquid truck / bulk truck), one bagger (1 MT totes) and one packaging operator. Untick “Present” if someone was absent.</p>
+      <table class="tbl" id="crew-table"></table>
+    </div>
+  </section>
+
+  <!-- 3. LOADS -->
+  <section class="card" id="sec-loads">
+    <div class="card-header">🚛 Truck &amp; Rail Car Loads <span class="tag" id="loads-tag">0 loads</span></div>
+    <div class="card-body">
+      <p class="hint">Log <b>every</b> truck and rail car loaded this shift — start and end time, net MT, and a <b>photo of the scale ticket</b> (required). Mark rail cars that were only partly loaded as <b>Partial</b>. Record any delay and why.</p>
+      <div class="totals" id="loads-totals"></div>
+      <div id="loads-list"></div>
+      <button class="add-btn" onclick="addLoad()">+ Add truck / rail car</button>
+    </div>
+  </section>
+
+  <!-- 4. PACKAGED -->
+  <section class="card" id="sec-packaged">
+    <div class="card-header">🧺 Totes &amp; Bags — Produced / Shipped</div>
+    <div class="card-body">
+      <p class="hint">Enter counts (number of totes or bags). MT is calculated: 1 MT tote = 1 MT, 20 kg bag = 0.020 MT, 50 lb bag = 0.0227 MT, 2 kg bag = 0.002 MT.</p>
+      <table class="tbl" id="pkg-table"></table>
+      <div class="totals" style="margin-top:14px" id="pkg-totals"></div>
+    </div>
+  </section>
+
+  <!-- 5. MOLASSES -->
+  <section class="card" id="sec-molasses">
+    <div class="card-header">🛢️ Molasses Trucks Unloaded <span class="tag" id="mol-tag">0 trucks</span></div>
+    <div class="card-body">
+      <p class="hint">Each molasses truck received and unloaded this shift. (Final molasses <b>rail cars loaded</b> go in the Loads section above.)</p>
+      <div id="mol-list"></div>
+      <button class="add-btn" onclick="addMolasses()">+ Add molasses truck</button>
+    </div>
+  </section>
+
+  <!-- 6. INVENTORY -->
+  <section class="card" id="sec-inventory">
+    <div class="card-header">🏭 End-of-Shift Finished Goods Inventory</div>
+    <div class="card-body">
+      <p class="hint">Physical count on the warehouse floor at end of shift. Grey text shows last shift's count.</p>
+      <div class="form-grid" id="inv-grid"></div>
+      <p class="hint" id="tote-check" style="margin-top:12px;margin-bottom:0"></p>
+    </div>
+  </section>
+
+  <!-- 7. SUPPLIES -->
+  <section class="card" id="sec-supplies">
+    <div class="card-header">📦 Packaging Supplies Available</div>
+    <div class="card-body">
+      <div class="form-grid" id="sup-grid"></div>
+    </div>
+  </section>
+
+  <!-- 8. DOWNTIME -->
+  <section class="card" id="sec-downtime">
+    <div class="card-header">⏱️ Downtime — Equipment &amp; Operations Failures <span class="tag" id="dt-tag">0 hr lost</span></div>
+    <div class="card-body">
+      <p class="hint">Report every stoppage: when it started and ended, what failed and what was done. Time lost is calculated.</p>
+      <div id="dt-list"></div>
+      <button class="add-btn" onclick="addDowntime()">+ Add downtime event</button>
+    </div>
+  </section>
+
+  <!-- 9. HOUSEKEEPING -->
+  <section class="card" id="sec-housekeeping">
+    <div class="card-header">🧹 Housekeeping &amp; Dome Returns</div>
+    <div class="card-body">
+      <p class="hint">End-of-shift cleanliness photos are <b>required</b> for all three areas.</p>
+      <div class="photo-grid" style="margin-bottom:16px">
+        <div class="photo-slot" id="slot-controlRoom"><div class="ttl">Control room <span style="color:var(--red)">*</span></div>
+          <button class="photo-btn" onclick="pickPhoto('controlRoom')">📷 Add photo</button><div class="thumbs" id="th-controlRoom"></div></div>
+        <div class="photo-slot" id="slot-loadingStation"><div class="ttl">Loading station <span style="color:var(--red)">*</span></div>
+          <button class="photo-btn" onclick="pickPhoto('loadingStation')">📷 Add photo</button><div class="thumbs" id="th-loadingStation"></div></div>
+        <div class="photo-slot" id="slot-warehouse"><div class="ttl">Warehouse <span style="color:var(--red)">*</span></div>
+          <button class="photo-btn" onclick="pickPhoto('warehouse')">📷 Add photo</button><div class="thumbs" id="th-warehouse"></div></div>
+      </div>
+
+      <p class="hint">All reject totes and sifter-over bags must be transferred back to the dome before end of shift.</p>
+      <div class="form-grid">
+        <div class="field"><label>Reject totes this shift</label><input type="number" min="0" step="1" inputmode="numeric" id="h-rejectTotes" oninput="touch()"></div>
+        <div class="field" style="justify-content:flex-end"><label class="check"><input type="checkbox" id="h-rejectToDome" onchange="touch()"> All transferred to dome</label></div>
+        <div class="field"><label>Sifter-over bags this shift</label><input type="number" min="0" step="1" inputmode="numeric" id="h-sifterBags" oninput="touch()"></div>
+        <div class="field" style="justify-content:flex-end"><label class="check"><input type="checkbox" id="h-sifterToDome" onchange="touch()"> All transferred to dome</label></div>
+        <div class="field wide">
+          <div class="photo-slot" id="slot-dome"><div class="ttl">Dome transfer photo (optional)</div>
+            <button class="photo-btn secondary" onclick="pickPhoto('dome')">📷 Add photo</button><div class="thumbs" id="th-dome"></div></div>
+        </div>
+        <div class="field wide"><label>Housekeeping notes <span id="hk-req" class="req" style="display:none">* explain why not transferred</span></label>
+          <textarea id="h-notes" oninput="touch()" placeholder="Anything not cleaned or not returned, and why"></textarea></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. NOTES -->
+  <section class="card" id="sec-notes">
+    <div class="card-header">📝 Shift Notes</div>
+    <div class="card-body">
+      <textarea id="s-notes" rows="4" oninput="touch()" placeholder="Handover notes, safety issues, customer issues…"></textarea>
+    </div>
+  </section>
+
+</main>
+
+<div id="bottom-bar">
+  <div id="bottom-stats"></div>
+  <button class="btn-submit" id="submit-btn" onclick="review()">Review &amp; Submit</button>
+</div>
+
+<input type="file" id="file-pick" accept="image/*" capture="environment" style="display:none">
+
+<div class="modal" id="review-modal">
+  <div class="modal-box">
+    <div class="modal-head" id="review-title">Review shift report</div>
+    <div class="modal-body" id="review-body"></div>
+    <div class="modal-foot" id="review-foot"></div>
+  </div>
+</div>
+
+<div class="modal" id="history-modal">
+  <div class="modal-box">
+    <div class="modal-head">Recent shifts</div>
+    <div class="modal-body" id="history-body">Loading…</div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('history-modal')">Close</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+//  STATE
+//  localStorage keys are prefixed "sucrowh_" so nothing collides
+//  with the refinery Shift Tracker on the same GitHub Pages domain.
+// ============================================================
+const LS_DRAFT = "sucrowh_draft";
+const LS_INV   = "sucrowh_last_inventory";
+const KG_50LB  = 22.6796;
+
+const PACKAGED = [
+  { key: "totesLC", label: "1 MT totes — low colour",  kg: 1000,    unit: "totes" },
+  { key: "totesHC", label: "1 MT totes — high colour", kg: 1000,    unit: "totes" },
+  { key: "reg20kg", label: "20 kg regular bags",       kg: 20,      unit: "bags" },
+  { key: "reg50lb", label: "50 lb regular bags",       kg: KG_50LB, unit: "bags" },
+  { key: "bag2kg",  label: "2 kg bags",                kg: 2,       unit: "bags" },
+  { key: "pwd20kg", label: "20 kg powder sugar bags",  kg: 20,      unit: "bags" },
+  { key: "pwd50lb", label: "50 lb powder sugar bags",  kg: KG_50LB, unit: "bags" },
+];
+// Map form keys → payload field names used by Code.gs
+const PKG_FIELDS = {
+  totesLC: ["totesPreparedLC", "totesShippedLC"],
+  totesHC: ["totesPreparedHC", "totesShippedHC"],
+  reg20kg: ["reg20kgProduced", "reg20kgShipped"],
+  reg50lb: ["reg50lbProduced", "reg50lbShipped"],
+  bag2kg:  ["bag2kgProduced",  "bag2kgShipped"],
+  pwd20kg: ["pwd20kgProduced", "pwd20kgShipped"],
+  pwd50lb: ["pwd50lbProduced", "pwd50lbShipped"],
+};
+
+const INVENTORY = [
+  { key: "totesLC",     label: "1 MT totes — low colour",        unit: "totes" },
+  { key: "totesHC",     label: "1 MT totes — high colour",       unit: "totes" },
+  { key: "skidsReg",    label: "20 kg / 50 lb regular sugar",    unit: "skids" },
+  { key: "skids2kg",    label: "2 kg bags",                      unit: "skids" },
+  { key: "skidsPowder", label: "Powder sugar",                   unit: "skids" },
+];
+const SUPPLIES = [
+  { key: "emptySkids",      label: "Empty skids",                       unit: "skids" },
+  { key: "emptySuperSacks", label: "Empty super sacks (1 MT)",          unit: "sacks" },
+  { key: "boxes20kgReg",    label: "Boxes of 20 kg regular sugar bags", unit: "boxes" },
+  { key: "bags20kgPowder",  label: "20 kg powder sugar bags",           unit: "bags" },
+];
+// Inventory sheet column → form key (for last-shift hints from the server)
+const INV_COLS = {
+  Totes_1MT_LowColour: "totesLC", Totes_1MT_HighColour: "totesHC",
+  Skids_Reg_20kg_50lb: "skidsReg", Skids_2kg: "skids2kg", Skids_Powder: "skidsPowder",
+  Empty_Skids: "emptySkids", Empty_Super_Sacks: "emptySuperSacks",
+  Boxes_20kg_Reg_Bags: "boxes20kgReg", Empty_20kg_Powder_Bags: "bags20kgPowder",
+};
+
+const state = {
+  loads: [],
+  molasses: [],
+  downtime: [],
+  photos: { controlRoom: [], loadingStation: [], warehouse: [], dome: [] },
+  lastInv: {},
+};
+
+const $ = id => document.getElementById(id);
+const num = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const opts = (list, sel) => `<option value="">— select —</option>` + list.map(o => `<option${o === sel ? " selected" : ""}>${esc(o)}</option>`).join("");
+
+function minutesBetween(a, b) {
+  if (!a || !b) return 0;
+  const [ah, am] = a.split(":").map(Number), [bh, bm] = b.split(":").map(Number);
+  let m = (bh * 60 + bm) - (ah * 60 + am);
+  if (m < 0) m += 1440;          // crosses midnight (night shift)
+  return m;
+}
+const fmtMin = m => m ? (m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min") : "—";
+
+// ============================================================
+//  BUILD STATIC SECTIONS
+// ============================================================
+function buildCrew() {
+  $("crew-table").innerHTML = `<tr><th>Role</th><th>Name</th><th style="width:70px">Present</th></tr>` +
+    CONFIG.crew.map(c => `<tr>
+      <td style="font-size:.82rem">${esc(c.label)}${c.key === "supervisor" ? ' <span style="color:var(--red)">*</span>' : ""}</td>
+      <td><input id="crew-${c.key}" placeholder="Name" oninput="touch()"></td>
+      <td style="text-align:center"><input type="checkbox" id="crewp-${c.key}" checked onchange="touch()" style="width:20px;height:20px"></td>
+    </tr>`).join("");
+}
+
+function buildPackaged() {
+  $("pkg-table").innerHTML = `<tr><th>Product</th><th class="num">Produced</th><th class="num">Shipped</th></tr>` +
+    PACKAGED.map(p => `<tr>
+      <td>${esc(p.label)}<div class="mt" id="pkgmt-${p.key}"></div></td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" id="pp-${p.key}" placeholder="0" oninput="touch()"></td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" id="ps-${p.key}" placeholder="0" oninput="touch()"></td>
+    </tr>`).join("");
+}
+
+function buildCountGrid(gridId, items, prefix) {
+  $(gridId).innerHTML = items.map(i => `<div class="field">
+      <label>${esc(i.label)} (${i.unit}) <span class="req">*</span></label>
+      <input type="number" min="0" step="1" inputmode="numeric" id="${prefix}-${i.key}" oninput="touch()">
+      <span class="mt" id="${prefix}last-${i.key}" style="font-size:.72rem;color:var(--gray-600)"></span>
+    </div>`).join("");
+}
+
+function showLastInventory() {
+  [...INVENTORY, ...SUPPLIES].forEach(i => {
+    const el = $(((INVENTORY.includes(i)) ? "invlast-" : "suplast-") + i.key);
+    const v = state.lastInv[i.key];
+    if (el) el.textContent = v !== undefined && v !== "" ? "Last shift: " + v : "";
+  });
+  recalc();
+}
+
+async function loadLastInventory() {
+  try { state.lastInv = JSON.parse(localStorage.getItem(LS_INV) || "{}"); } catch (e) { state.lastInv = {}; }
+  showLastInventory();
+  if (!configured()) return;
+  try {
+    const r = await fetch(CONFIG.appsScriptUrl + "?action=lastInventory").then(r => r.json());
+    if (r.ok && r.row) {
+      const inv = {};
+      Object.entries(INV_COLS).forEach(([col, key]) => { if (r.row[col] !== undefined) inv[key] = num(r.row[col]); });
+      state.lastInv = inv;
+      showLastInventory();
+    }
+  } catch (e) { /* offline — keep local copy */ }
+}
+
+// ============================================================
+//  LOADS
+// ============================================================
+function addLoad() {
+  state.loads.push({ type: "", unitNo: "", customer: "", bol: "", start: "", end: "", mt: "", status: "Full", partialNote: "", delayMin: "", delayReason: "", delayNote: "", ticket: null });
+  renderLoads();
+  touch();
+  const boxes = document.querySelectorAll("#loads-list .row-box");
+  boxes[boxes.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function removeLoad(i) {
+  if (!confirm("Remove load #" + (i + 1) + "?")) return;
+  state.loads.splice(i, 1); renderLoads(); touch();
+}
+function setLoad(i, k, v, rerender) {
+  state.loads[i][k] = v;
+  if (rerender) renderLoads();
+  if (k === "start" || k === "end") $("ldur-" + i).value = fmtMin(minutesBetween(state.loads[i].start, state.loads[i].end));
+  touch();
+}
+
+function renderLoads() {
+  const L = state.loads;
+  $("loads-list").innerHTML = L.length ? L.map((l, i) => {
+    const isPartial = l.status === "Partial";
+    const delayed = num(l.delayMin) > 0;
+    return `<div class="row-box" id="load-${i}">
+      <div class="row-head"><span>Load #${i + 1}${l.type ? " — " + esc(l.type) : ""}</span><button class="rm-btn" onclick="removeLoad(${i})">Remove</button></div>
+      <div class="form-grid">
+        <div class="field"><label>Type <span class="req">*</span></label>
+          <select data-f="type" onchange="setLoad(${i},'type',this.value,true)">${opts(CONFIG.loadTypes, l.type)}</select></div>
+        <div class="field"><label>${/rail/i.test(l.type) ? "Rail car #" : "Truck / trailer #"} <span class="req">*</span></label>
+          <input data-f="unitNo" value="${esc(l.unitNo)}" oninput="setLoad(${i},'unitNo',this.value)"></div>
+        <div class="field"><label>Customer</label><input value="${esc(l.customer)}" oninput="setLoad(${i},'customer',this.value)"></div>
+        <div class="field"><label>BOL / scale ticket #</label><input value="${esc(l.bol)}" oninput="setLoad(${i},'bol',this.value)"></div>
+        <div class="field"><label>Loading start <span class="req">*</span></label><input data-f="start" type="time" value="${esc(l.start)}" onchange="setLoad(${i},'start',this.value)"></div>
+        <div class="field"><label>Loading end <span class="req">*</span></label><input data-f="end" type="time" value="${esc(l.end)}" onchange="setLoad(${i},'end',this.value)"></div>
+        <div class="field"><label>Time to load</label><input id="ldur-${i}" readonly value="${fmtMin(minutesBetween(l.start, l.end))}"></div>
+        <div class="field"><label>Net weight (MT) <span class="req">*</span></label>
+          <input data-f="mt" type="number" min="0" step="0.001" inputmode="decimal" value="${esc(l.mt)}" oninput="setLoad(${i},'mt',this.value)"></div>
+        <div class="field"><label>Load status</label>
+          <select onchange="setLoad(${i},'status',this.value,true)">
+            <option${!isPartial ? " selected" : ""}>Full</option><option${isPartial ? " selected" : ""}>Partial</option></select></div>
+        ${isPartial ? `<div class="field wide"><label>Partial load — why, and how much is left to load? <span class="req">*</span></label>
+          <input data-f="partialNote" value="${esc(l.partialNote)}" oninput="setLoad(${i},'partialNote',this.value)" placeholder="e.g. 45 of 90 MT loaded, silo low — finish next shift"></div>` : ""}
+        <div class="field"><label>Delay (minutes)</label>
+          <input type="number" min="0" step="1" inputmode="numeric" value="${esc(l.delayMin)}" oninput="setLoad(${i},'delayMin',this.value)" onchange="renderLoads()" placeholder="0"></div>
+        ${delayed ? `<div class="field"><label>Delay reason <span class="req">*</span></label>
+            <select data-f="delayReason" onchange="setLoad(${i},'delayReason',this.value)">${opts(CONFIG.delayReasons, l.delayReason)}</select></div>
+          <div class="field wide"><label>Delay details${l.delayReason === "Other" ? ' <span class="req">*</span>' : ""}</label>
+            <input data-f="delayNote" value="${esc(l.delayNote)}" oninput="setLoad(${i},'delayNote',this.value)"></div>` : ""}
+        <div class="field wide">
+          <div class="photo-slot" data-f="ticket"><div class="ttl">Scale ticket photo <span style="color:var(--red)">*</span></div>
+            <button class="photo-btn" onclick="pickPhoto('ticket', ${i})">📷 ${l.ticket ? "Retake" : "Take photo"}</button>
+            <div class="thumbs">${l.ticket ? `<div class="thumb"><img src="${l.ticket.url}"><button class="x" onclick="removeTicket(${i})">✕</button></div>` : ""}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join("") : `<p class="empty">No loads added yet.</p>`;
+}
+
+// ============================================================
+//  MOLASSES
+// ============================================================
+function addMolasses() {
+  state.molasses.push({ truckNo: "", supplier: "", ticket: "", start: "", end: "", mt: "" });
+  renderMolasses(); touch();
+}
+function removeMolasses(i) { state.molasses.splice(i, 1); renderMolasses(); touch(); }
+function setMol(i, k, v) {
+  state.molasses[i][k] = v;
+  if (k === "start" || k === "end") $("mdur-" + i).value = fmtMin(minutesBetween(state.molasses[i].start, state.molasses[i].end));
+  touch();
+}
+function renderMolasses() {
+  $("mol-list").innerHTML = state.molasses.length ? state.molasses.map((m, i) => `<div class="row-box" id="mol-${i}">
+    <div class="row-head"><span>Molasses truck #${i + 1}</span><button class="rm-btn" onclick="removeMolasses(${i})">Remove</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Truck #</label><input value="${esc(m.truckNo)}" oninput="setMol(${i},'truckNo',this.value)"></div>
+      <div class="field"><label>Supplier</label><input value="${esc(m.supplier)}" oninput="setMol(${i},'supplier',this.value)"></div>
+      <div class="field"><label>Ticket #</label><input value="${esc(m.ticket)}" oninput="setMol(${i},'ticket',this.value)"></div>
+      <div class="field"><label>Unload start</label><input type="time" value="${esc(m.start)}" onchange="setMol(${i},'start',this.value)"></div>
+      <div class="field"><label>Unload end</label><input type="time" value="${esc(m.end)}" onchange="setMol(${i},'end',this.value)"></div>
+      <div class="field"><label>Time to unload</label><input id="mdur-${i}" readonly value="${fmtMin(minutesBetween(m.start, m.end))}"></div>
+      <div class="field"><label>Quantity (MT) <span class="req">*</span></label>
+        <input data-f="mt" type="number" min="0" step="0.001" inputmode="decimal" value="${esc(m.mt)}" oninput="setMol(${i},'mt',this.value)"></div>
+    </div></div>`).join("") : `<p class="empty">No molasses trucks unloaded.</p>`;
+}
+
+// ============================================================
+//  DOWNTIME
+// ============================================================
+function addDowntime() {
+  state.downtime.push({ start: "", end: "", category: "", area: "", description: "", action: "" });
+  renderDowntime(); touch();
+}
+function removeDowntime(i) { state.downtime.splice(i, 1); renderDowntime(); touch(); }
+function setDt(i, k, v) {
+  state.downtime[i][k] = v;
+  if (k === "start" || k === "end") $("ddur-" + i).value = fmtMin(minutesBetween(state.downtime[i].start, state.downtime[i].end));
+  touch();
+}
+function renderDowntime() {
+  $("dt-list").innerHTML = state.downtime.length ? state.downtime.map((d, i) => `<div class="row-box" id="dt-${i}">
+    <div class="row-head"><span>Downtime #${i + 1}</span><button class="rm-btn" onclick="removeDowntime(${i})">Remove</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Type <span class="req">*</span></label><select data-f="category" onchange="setDt(${i},'category',this.value)">${opts(CONFIG.downtimeCategories, d.category)}</select></div>
+      <div class="field"><label>Equipment / area <span class="req">*</span></label><select data-f="area" onchange="setDt(${i},'area',this.value)">${opts(CONFIG.equipmentAreas, d.area)}</select></div>
+      <div class="field"><label>Start <span class="req">*</span></label><input data-f="start" type="time" value="${esc(d.start)}" onchange="setDt(${i},'start',this.value)"></div>
+      <div class="field"><label>End <span class="req">*</span></label><input data-f="end" type="time" value="${esc(d.end)}" onchange="setDt(${i},'end',this.value)"></div>
+      <div class="field"><label>Time lost</label><input id="ddur-${i}" readonly value="${fmtMin(minutesBetween(d.start, d.end))}"></div>
+      <div class="field wide"><label>What happened <span class="req">*</span></label><input data-f="description" value="${esc(d.description)}" oninput="setDt(${i},'description',this.value)"></div>
+      <div class="field wide"><label>Action taken / follow-up</label><input value="${esc(d.action)}" oninput="setDt(${i},'action',this.value)"></div>
+    </div></div>`).join("") : `<p class="empty">No downtime reported.</p>`;
+}
+
+// ============================================================
+//  PHOTOS — resized on the phone before upload (≈200–400 KB each)
+// ============================================================
+let pickTarget = null;
+function pickPhoto(slot, idx) {
+  pickTarget = { slot, idx };
+  const f = $("file-pick");
+  f.value = "";
+  f.multiple = slot !== "ticket";
+  f.click();
+}
+$("file-pick").addEventListener("change", async e => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length || !pickTarget) return;
+  const { slot, idx } = pickTarget;
+  for (const file of files) {
+    try {
+      const img = await compressImage(file);
+      if (slot === "ticket") {
+        const l = state.loads[idx];
+        img.name = `ticket_${$("s-date").value}_${(l.type || "load").replace(/\W+/g, "-")}_${(l.unitNo || idx + 1)}.jpg`;
+        l.ticket = img;
+        renderLoads();
+      } else {
+        img.name = `${slot}_${$("s-date").value}_${$("s-shift").value}_${Date.now()}.jpg`;
+        state.photos[slot].push(img);
+        renderThumbs(slot);
+      }
+    } catch (err) { toast("Could not read photo: " + err.message); }
+  }
+  touch();
+});
+
+function compressImage(file, maxSide = 1600, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.onload = ev => {
+      const im = new Image();
+      im.onerror = () => reject(new Error("not an image"));
+      im.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(im.width, im.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(im.width * scale);
+        c.height = Math.round(im.height * scale);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        const url = c.toDataURL("image/jpeg", quality);
+        resolve({ url, base64: url.split(",")[1], mime: "image/jpeg", name: file.name });
+      };
+      im.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs(slot) {
+  $("th-" + slot).innerHTML = state.photos[slot].map((p, i) =>
+    `<div class="thumb"><img src="${p.url}"><button class="x" onclick="removePhoto('${slot}',${i})">✕</button></div>`).join("");
+  $("slot-" + slot).classList.remove("invalid");
+}
+function removePhoto(slot, i) { state.photos[slot].splice(i, 1); renderThumbs(slot); }
+function removeTicket(i) { state.loads[i].ticket = null; renderLoads(); }
+
+// ============================================================
+//  CALCULATIONS
+// ============================================================
+function calc() {
+  const L = state.loads;
+  const of = t => L.filter(l => l.type === t);
+  const mt = arr => arr.reduce((a, l) => a + num(l.mt), 0);
+  let prodKg = 0, shipKg = 0;
+  PACKAGED.forEach(p => {
+    prodKg += num($("pp-" + p.key).value) * p.kg;
+    shipKg += num($("ps-" + p.key).value) * p.kg;
+  });
+  const t = {
+    liquidLoads: of("Liquid truck").length,   liquidMT: mt(of("Liquid truck")),
+    truckLoads:  of("Dry bulk truck").length, truckMT:  mt(of("Dry bulk truck")),
+    railCars:    of("Dry rail car").length,   railMT:   mt(of("Dry rail car")),
+    railPartial: of("Dry rail car").filter(l => l.status === "Partial").length,
+    fmCars:      of("Final molasses rail car").length, fmMT: mt(of("Final molasses rail car")),
+    toteLoads:   of("1 MT tote truck").length,
+    pkgProdMT: prodKg / 1000, pkgShipMT: shipKg / 1000,
+    molMT: state.molasses.reduce((a, m) => a + num(m.mt), 0),
+    dtMin: state.downtime.reduce((a, d) => a + minutesBetween(d.start, d.end), 0),
+    delayed: L.filter(l => num(l.delayMin) > 0).length,
+    delayMin: L.reduce((a, l) => a + num(l.delayMin), 0),
+  };
+  t.bulkMT = t.liquidMT + t.truckMT + t.railMT;
+  t.totalMT = t.bulkMT + t.pkgShipMT;
+  return t;
+}
+
+function recalc() {
+  const t = calc();
+  const tot = (k, v) => `<div class="tot"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  $("loads-totals").innerHTML =
+      tot("Liquid trucks", `${t.liquidLoads} · ${t.liquidMT.toFixed(2)} MT`)
+    + tot("Dry bulk trucks", `${t.truckLoads} · ${t.truckMT.toFixed(2)} MT`)
+    + tot("Dry rail cars", `${t.railCars} · ${t.railMT.toFixed(2)} MT`)
+    + tot("Final molasses cars", `${t.fmCars} · ${t.fmMT.toFixed(2)} MT`)
+    + tot("Delays", `${t.delayed} · ${fmtMin(t.delayMin)}`);
+  $("loads-tag").textContent = state.loads.length + (state.loads.length === 1 ? " load" : " loads");
+
+  PACKAGED.forEach(p => {
+    const pr = num($("pp-" + p.key).value) * p.kg / 1000, sh = num($("ps-" + p.key).value) * p.kg / 1000;
+    $("pkgmt-" + p.key).textContent = (pr || sh) ? `${pr.toFixed(3)} MT produced · ${sh.toFixed(3)} MT shipped` : "";
+  });
+  $("pkg-totals").innerHTML = tot("Packaged produced", t.pkgProdMT.toFixed(2) + " MT") + tot("Packaged shipped", t.pkgShipMT.toFixed(2) + " MT");
+
+  $("mol-tag").textContent = state.molasses.length + (state.molasses.length === 1 ? " truck" : " trucks") + (t.molMT ? " · " + t.molMT.toFixed(1) + " MT" : "");
+  $("dt-tag").textContent = (t.dtMin / 60).toFixed(2) + " hr lost";
+
+  // Tote reconciliation: last count + prepared − shipped should equal today's count
+  const msgs = [];
+  [["totesLC", "Low colour"], ["totesHC", "High colour"]].forEach(([k, lbl]) => {
+    const last = state.lastInv[k];
+    const cur = $("inv-" + k).value;
+    if (last === undefined || cur === "") return;
+    const expected = num(last) + num($("pp-" + k).value) - num($("ps-" + k).value);
+    const diff = num(cur) - expected;
+    msgs.push(diff === 0
+      ? `✅ ${lbl} totes reconcile (${expected}).`
+      : `⚠️ ${lbl} totes: expected ${expected} (last ${last} + prepared − shipped), counted ${cur} — difference ${diff > 0 ? "+" : ""}${diff}.`);
+  });
+  $("tote-check").innerHTML = msgs.join("<br>");
+
+  const rej = num($("h-rejectTotes").value) > 0 && !$("h-rejectToDome").checked;
+  const sif = num($("h-sifterBags").value) > 0 && !$("h-sifterToDome").checked;
+  $("hk-req").style.display = rej || sif ? "inline" : "none";
+
+  $("bottom-stats").innerHTML =
+      `<span>Shipped<br><b>${t.totalMT.toFixed(1)} MT</b></span>`
+    + `<span>Bulk<br><b>${t.bulkMT.toFixed(1)}</b></span>`
+    + `<span>Packaged<br><b>${t.pkgShipMT.toFixed(1)}</b></span>`
+    + `<span>Downtime<br><b>${(t.dtMin / 60).toFixed(1)} h</b></span>`;
+}
+
+let draftTimer, ready = false;
+function touch() {
+  recalc();
+  if (!ready) return;   // don't overwrite a saved draft while the page is still setting up
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => saveDraft(false), 800);
+}
+
+// ============================================================
+//  SHIFT
+// ============================================================
+function onShiftChange() {
+  const s = CONFIG.shifts[$("s-shift").value];
+  $("s-start").value = s.start;
+  $("s-end").value = s.end;
+  touch();
+}
+
+function defaultShift() {
+  // Before 07:00 the night shift that started yesterday is still running
+  const now = new Date();
+  const h = now.getHours();
+  const night = h < 7 || h >= 19;
+  const d = new Date(now);
+  if (h < 7) d.setDate(d.getDate() - 1);
+  $("s-date").value = d.toLocaleDateString("en-CA");
+  $("s-shift").value = night ? "Night" : "Day";
+  onShiftChange();
+}
+
+// ============================================================
+//  VALIDATION & PAYLOAD
+// ============================================================
+function validate() {
+  document.querySelectorAll(".invalid").forEach(el => el.classList.remove("invalid"));
+  document.querySelectorAll(".row-box.err").forEach(el => el.classList.remove("err"));
+  const errs = [];
+  const bad = (el, msg) => { if (el) el.classList.add("invalid"); errs.push({ msg, el }); };
+  const inRow = (id, f) => document.querySelector(`#${id} [data-f="${f}"]`);
+
+  if (!$("s-date").value) bad($("s-date"), "Shift date is missing.");
+  if (!$("crew-supervisor").value.trim()) bad($("crew-supervisor"), "Supervisor name is required.");
+
+  state.loads.forEach((l, i) => {
+    const id = "load-" + i, n0 = errs.length, tag = `Load #${i + 1}`;
+    if (!l.type) bad(inRow(id, "type"), `${tag}: choose a load type.`);
+    if (!l.unitNo.trim()) bad(inRow(id, "unitNo"), `${tag}: truck / rail car number is required.`);
+    if (!l.start) bad(inRow(id, "start"), `${tag}: loading start time is required.`);
+    if (!l.end) bad(inRow(id, "end"), `${tag}: loading end time is required.`);
+    if (!(num(l.mt) > 0)) bad(inRow(id, "mt"), `${tag}: net weight (MT) is required.`);
+    if (l.status === "Partial" && !l.partialNote.trim()) bad(inRow(id, "partialNote"), `${tag}: explain the partial load.`);
+    if (num(l.delayMin) > 0 && !l.delayReason) bad(inRow(id, "delayReason"), `${tag}: delay reason is required.`);
+    if (num(l.delayMin) > 0 && l.delayReason === "Other" && !l.delayNote.trim()) bad(inRow(id, "delayNote"), `${tag}: describe the delay.`);
+    if (!l.ticket) bad(inRow(id, "ticket"), `${tag}: scale ticket photo is required.`);
+    if (errs.length > n0) $(id).classList.add("err");
+  });
+
+  state.molasses.forEach((m, i) => {
+    if (!(num(m.mt) > 0)) { bad(inRow("mol-" + i, "mt"), `Molasses truck #${i + 1}: quantity (MT) is required.`); $("mol-" + i).classList.add("err"); }
+  });
+
+  state.downtime.forEach((d, i) => {
+    const id = "dt-" + i, n0 = errs.length, tag = `Downtime #${i + 1}`;
+    if (!d.category) bad(inRow(id, "category"), `${tag}: choose equipment or operations failure.`);
+    if (!d.area) bad(inRow(id, "area"), `${tag}: choose the equipment / area.`);
+    if (!d.start) bad(inRow(id, "start"), `${tag}: start time is required.`);
+    if (!d.end) bad(inRow(id, "end"), `${tag}: end time is required.`);
+    if (!d.description.trim()) bad(inRow(id, "description"), `${tag}: describe what happened.`);
+    if (errs.length > n0) $(id).classList.add("err");
+  });
+
+  [...INVENTORY.map(i => ["inv-" + i.key, i.label]), ...SUPPLIES.map(i => ["sup-" + i.key, i.label])].forEach(([id, lbl]) => {
+    if ($(id).value === "") bad($(id), `Count missing: ${lbl}.`);
+  });
+
+  [["controlRoom", "Control room"], ["loadingStation", "Loading station"], ["warehouse", "Warehouse"]].forEach(([k, lbl]) => {
+    if (!state.photos[k].length) bad($("slot-" + k), `${lbl} cleanliness photo is required.`);
+  });
+
+  const rej = num($("h-rejectTotes").value) > 0 && !$("h-rejectToDome").checked;
+  const sif = num($("h-sifterBags").value) > 0 && !$("h-sifterToDome").checked;
+  if ((rej || sif) && !$("h-notes").value.trim())
+    bad($("h-notes"), "Reject totes / sifter-over bags not returned to dome — explain why in housekeeping notes.");
+
+  return errs;
+}
+
+function crewPayload() {
+  const c = {};
+  CONFIG.crew.forEach(r => c[r.key] = { name: $("crew-" + r.key).value.trim(), present: $("crewp-" + r.key).checked });
+  return c;
+}
+
+function buildPayload(photoUrls) {
+  const packaged = {};
+  PACKAGED.forEach(p => {
+    const [prod, ship] = PKG_FIELDS[p.key];
+    packaged[prod] = num($("pp-" + p.key).value);
+    packaged[ship] = num($("ps-" + p.key).value);
+  });
+  const inventory = {};
+  INVENTORY.forEach(i => inventory[i.key] = num($("inv-" + i.key).value));
+  SUPPLIES.forEach(i => inventory[i.key] = num($("sup-" + i.key).value));
+  photoUrls = photoUrls || {};
+
+  return {
+    date: $("s-date").value,
+    shift: $("s-shift").value,
+    start: $("s-start").value,
+    end: $("s-end").value,
+    supervisor: $("crew-supervisor").value.trim(),
+    crew: crewPayload(),
+    loads: state.loads.map((l, i) => ({
+      type: l.type, unitNo: l.unitNo.trim(), customer: l.customer.trim(), bol: l.bol.trim(),
+      start: l.start, end: l.end, minutes: minutesBetween(l.start, l.end), mt: num(l.mt),
+      status: l.status, partialNote: l.status === "Partial" ? l.partialNote.trim() : "",
+      delayMin: num(l.delayMin), delayReason: num(l.delayMin) > 0 ? l.delayReason : "", delayNote: num(l.delayMin) > 0 ? l.delayNote.trim() : "",
+      ticketPhoto: (photoUrls.tickets || [])[i] || "",
+    })),
+    packaged,
+    molasses: state.molasses.map(m => ({ ...m, minutes: minutesBetween(m.start, m.end), mt: num(m.mt) })),
+    inventory,
+    downtime: state.downtime.map(d => ({ ...d, minutes: minutesBetween(d.start, d.end) })),
+    housekeeping: {
+      controlRoomPhotos: photoUrls.controlRoom || "",
+      loadingStationPhotos: photoUrls.loadingStation || "",
+      warehousePhotos: photoUrls.warehouse || "",
+      domePhotos: photoUrls.dome || "",
+      rejectTotes: num($("h-rejectTotes").value),
+      rejectTotesToDome: $("h-rejectToDome").checked,
+      sifterOverBags: num($("h-sifterBags").value),
+      sifterOverToDome: $("h-sifterToDome").checked,
+      notes: $("h-notes").value.trim(),
+    },
+    notes: $("s-notes").value.trim(),
+  };
+}
+
+// ============================================================
+//  REVIEW & SUBMIT
+// ============================================================
+function review() {
+  const errs = validate();
+  const box = $("review-body"), foot = $("review-foot");
+  if (errs.length) {
+    $("review-title").textContent = `Fix ${errs.length} item${errs.length > 1 ? "s" : ""} before submitting`;
+    box.innerHTML = `<ul class="err-list">${errs.map(e => `<li>${esc(e.msg)}</li>`).join("")}</ul>`;
+    foot.innerHTML = `<button class="btn primary" onclick="closeModal('review-modal'); goToFirstError()">Go to first item</button>`;
+    window._firstErr = errs[0].el;
+    openModal("review-modal");
+    return;
+  }
+  const t = calc();
+  const row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+  const photoCount = Object.values(state.photos).reduce((a, p) => a + p.length, 0) + state.loads.length;
+  $("review-title").textContent = "Review shift report";
+  box.innerHTML = `
+    <p><b>${esc($("s-date").value)} · ${esc($("s-shift").value)} shift</b> (${$("s-start").value}–${$("s-end").value}) · ${esc($("crew-supervisor").value)}</p>
+    <div class="sum-h">Shipped</div>
+    <table class="sum-tbl">
+      ${row(`Liquid trucks (${t.liquidLoads})`, t.liquidMT.toFixed(2) + " MT")}
+      ${row(`Dry bulk trucks (${t.truckLoads})`, t.truckMT.toFixed(2) + " MT")}
+      ${row(`Dry rail cars (${t.railCars}${t.railPartial ? ", " + t.railPartial + " partial" : ""})`, t.railMT.toFixed(2) + " MT")}
+      ${row("Totes &amp; bags", t.pkgShipMT.toFixed(2) + " MT")}
+      ${row("<b>Total sugar shipped</b>", "<b>" + t.totalMT.toFixed(2) + " MT</b>")}
+      ${row(`Final molasses rail cars (${t.fmCars})`, t.fmMT.toFixed(2) + " MT")}
+    </table>
+    <div class="sum-h">Other</div>
+    <table class="sum-tbl">
+      ${row("Packaged produced", t.pkgProdMT.toFixed(2) + " MT")}
+      ${row(`Molasses trucks unloaded (${state.molasses.length})`, t.molMT.toFixed(2) + " MT")}
+      ${row(`Downtime (${state.downtime.length} events)`, (t.dtMin / 60).toFixed(2) + " hr")}
+      ${row(`Delayed loads (${t.delayed})`, fmtMin(t.delayMin))}
+      ${row("Photos to upload", photoCount)}
+    </table>
+    <p class="hint">Once submitted the report goes to the Google Sheet and can't be edited from here.</p>`;
+  foot.innerHTML = `<button class="btn" onclick="closeModal('review-modal')">Back</button><button class="btn primary" onclick="doSubmit()">Submit to Google Sheets</button>`;
+  openModal("review-modal");
+}
+
+function goToFirstError() {
+  const el = window._firstErr;
+  if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); if (el.focus) setTimeout(() => el.focus(), 300); }
+}
+
+const configured = () => CONFIG.appsScriptUrl && !/YOUR_APPS_SCRIPT_URL/.test(CONFIG.appsScriptUrl);
+
+async function post(body) {
+  // text/plain body (no headers) avoids a CORS preflight, which Apps Script can't answer
+  const r = await fetch(CONFIG.appsScriptUrl, { method: "POST", body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Server error");
+  return j;
+}
+
+async function doSubmit() {
+  closeModal("review-modal");
+  const btn = $("submit-btn");
+  btn.disabled = true;
+
+  try {
+    if (!configured()) {
+      download(buildPayload(), `warehouse-shift-${$("s-date").value}-${$("s-shift").value}.json`);
+      toast("⚠️ Apps Script URL not set in config.js — report downloaded as a file instead.");
+      btn.disabled = false;
+      return;
+    }
+
+    // Upload every photo first (3 at a time), then send the report with the links
+    const jobs = [];
+    Object.entries(state.photos).forEach(([slot, list]) => list.forEach(p => jobs.push({ slot, p })));
+    state.loads.forEach((l, i) => jobs.push({ slot: "ticket", idx: i, p: l.ticket }));
+    const urls = { tickets: [] };
+    let done = 0;
+    btn.textContent = `Uploading photos 0/${jobs.length}…`;
+    const queue = jobs.slice();
+    async function worker() {
+      while (queue.length) {
+        const j = queue.shift();
+        const r = await post({ action: "uploadFile", base64: j.p.base64, mimeType: j.p.mime, fileName: j.p.name });
+        if (j.slot === "ticket") urls.tickets[j.idx] = r.url;
+        else urls[j.slot] = urls[j.slot] ? urls[j.slot] + ", " + r.url : r.url;
+        btn.textContent = `Uploading photos ${++done}/${jobs.length}…`;
+      }
+    }
+    await Promise.all([worker(), worker(), worker()]);
+
+    btn.textContent = "Saving report…";
+    const payload = buildPayload(urls);
+    const res = await post({ action: "submitShift", data: payload });
+
+    try { localStorage.setItem(LS_INV, JSON.stringify(payload.inventory)); } catch (e) {}
+    localStorage.removeItem(LS_DRAFT);
+    btn.textContent = "✅ Submitted";
+    btn.style.background = "var(--blue-dark)";
+    $("review-title").textContent = "Report submitted";
+    $("review-body").innerHTML = `<p style="font-size:1rem">✅ Saved to Google Sheets.<br>Shift ID: <b>${esc(res.shiftId)}</b></p>`;
+    $("review-foot").innerHTML = `<button class="btn primary" onclick="location.reload()">Start a new report</button>`;
+    openModal("review-modal");
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Review & Submit";
+    toast("❌ Not submitted: " + err.message + " — your entries are still here, try again.", 7000);
+  }
+}
+
+// ============================================================
+//  DRAFTS (photos are not kept in drafts — too large for the phone's storage)
+// ============================================================
+function collectDraft() {
+  const fields = {};
+  document.querySelectorAll("#main input[id], #main select[id], #main textarea[id]").forEach(el => {
+    if (el.readOnly || el.type === "file") return;
+    fields[el.id] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  return {
+    savedAt: new Date().toLocaleString("en-CA"),
+    fields,
+    loads: state.loads.map(l => ({ ...l, ticket: null })),
+    molasses: state.molasses,
+    downtime: state.downtime,
+  };
+}
+function saveDraft(announce) {
+  try {
+    localStorage.setItem(LS_DRAFT, JSON.stringify(collectDraft()));
+    if (announce) toast("Draft saved on this device (photos are not saved in drafts).");
+  } catch (e) { if (announce) toast("Could not save draft: " + e.message); }
+}
+function checkDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_DRAFT) || "null");
+    if (d && d.fields) { $("draft-when").textContent = d.savedAt; $("draft-banner").style.display = "flex"; }
+  } catch (e) {}
+}
+function restoreDraft() {
+  const d = JSON.parse(localStorage.getItem(LS_DRAFT) || "null");
+  if (!d) return;
+  // Add rows first so their inputs exist, then fill the fixed fields
+  state.loads = d.loads || [];
+  state.molasses = d.molasses || [];
+  state.downtime = d.downtime || [];
+  renderLoads(); renderMolasses(); renderDowntime();
+  Object.entries(d.fields || {}).forEach(([id, v]) => {
+    const el = $(id);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = v; else el.value = v;
+  });
+  $("draft-banner").style.display = "none";
+  onShiftChange();
+  toast("Draft restored. Re-take photos and scale tickets before submitting.", 5000);
+}
+function discardDraft() {
+  localStorage.removeItem(LS_DRAFT);
+  $("draft-banner").style.display = "none";
+}
+
+// ============================================================
+//  HISTORY
+// ============================================================
+async function showHistory() {
+  openModal("history-modal");
+  const body = $("history-body");
+  if (!configured()) { body.textContent = "Apps Script URL is not set in config.js yet."; return; }
+  body.textContent = "Loading…";
+  try {
+    const r = await fetch(CONFIG.appsScriptUrl + "?action=getHistory").then(r => r.json());
+    if (!r.ok) throw new Error(r.error);
+    if (!r.rows.length) { body.textContent = "No shifts submitted yet."; return; }
+    body.innerHTML = `<div style="overflow-x:auto"><table class="tbl"><tr><th>Date</th><th>Shift</th><th>Supervisor</th><th>Shipped MT</th><th>Downtime h</th></tr>` +
+      r.rows.map(x => `<tr><td>${esc(x.Date)}</td><td>${esc(x.Shift)}</td><td>${esc(x.Supervisor)}</td><td>${esc(x.Total_Shipped_MT)}</td><td>${esc(x.Downtime_Hours)}</td></tr>`).join("") +
+      `</table></div>`;
+  } catch (e) { body.textContent = "Could not load history: " + e.message; }
+}
+
+// ============================================================
+//  UTIL
+// ============================================================
+function openModal(id) { $(id).classList.add("open"); }
+function closeModal(id) { $(id).classList.remove("open"); }
+function toast(msg, ms = 3500) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), ms);
+}
+function download(data, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  a.download = filename;
+  a.click();
+}
+window.addEventListener("beforeunload", e => {
+  if (state.loads.length || Object.values(state.photos).some(p => p.length)) { saveDraft(false); }
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+buildCrew();
+buildPackaged();
+buildCountGrid("inv-grid", INVENTORY, "inv");
+buildCountGrid("sup-grid", SUPPLIES, "sup");
+renderLoads(); renderMolasses(); renderDowntime();
+defaultShift();
+checkDraft();
+loadLastInventory();
+recalc();
+ready = true;
+
+// Keep the section bar pinned right under the header, whatever height it wraps to
+const pinJumpBar = () => $("jump-wrap").style.top = $("app-header").offsetHeight + "px";
+pinJumpBar();
+window.addEventListener("resize", pinJumpBar);
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW failed:', e));
+  });
+}
+</script>
+</body>
+</html>
