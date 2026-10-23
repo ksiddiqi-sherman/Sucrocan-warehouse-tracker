@@ -1,6 +1,6 @@
 // Bump CACHE on every index.html change, or installed apps keep the old form.
 // Name is distinct from the refinery tracker's cache ("sucrocan-vN") so the two never clash.
-const CACHE = "sucrocan-warehouse-v1";
+const CACHE = "sucrocan-warehouse-v3";
 
 // Cache everything except config.js — config must always load fresh
 const STATIC = [

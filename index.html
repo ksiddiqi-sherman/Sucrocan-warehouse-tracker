@@ -802,7 +802,8 @@ function recalc() {
       `<span>Shipped<br><b>${t.totalMT.toFixed(1)} MT</b></span>`
     + `<span>Bulk<br><b>${t.bulkMT.toFixed(1)}</b></span>`
     + `<span>Packaged<br><b>${t.pkgShipMT.toFixed(1)}</b></span>`
-    + `<span>Downtime<br><b>${(t.dtMin / 60).toFixed(1)} h</b></span>`;
+    + `<span>Downtime<br><b>${(t.dtMin / 60).toFixed(1)} h</b></span>`
+    + `<span>Crew<br><b>${crewPresent()}/${CONFIG.crew.length}</b></span>`;
 }
 
 let draftTimer, ready = false;
@@ -892,6 +893,9 @@ function validate() {
   return errs;
 }
 
+// Same rule as Code.gs: a role is present when it has a name and "Present" is ticked
+const crewPresent = () => CONFIG.crew.filter(c => $("crew-" + c.key).value.trim() && $("crewp-" + c.key).checked).length;
+
 function crewPayload() {
   const c = {};
   CONFIG.crew.forEach(r => c[r.key] = { name: $("crew-" + r.key).value.trim(), present: $("crewp-" + r.key).checked });
@@ -963,6 +967,13 @@ function review() {
   $("review-title").textContent = "Review shift report";
   box.innerHTML = `
     <p><b>${esc($("s-date").value)} · ${esc($("s-shift").value)} shift</b> (${$("s-start").value}–${$("s-end").value}) · ${esc($("crew-supervisor").value)}</p>
+    <div class="sum-h">Crew — ${crewPresent()} of ${CONFIG.crew.length} present</div>
+    <table class="sum-tbl">
+      ${CONFIG.crew.map(c => {
+        const name = $("crew-" + c.key).value.trim(), here = name && $("crewp-" + c.key).checked;
+        return row(esc(c.label.split(" — ")[0]) + (name ? " — " + esc(name) : ""), here ? "✅ Present" : '<span style="color:var(--red)">❌ Absent</span>');
+      }).join("")}
+    </table>
     <div class="sum-h">Shipped</div>
     <table class="sum-tbl">
       ${row(`Liquid trucks (${t.liquidLoads})`, t.liquidMT.toFixed(2) + " MT")}
@@ -972,14 +983,47 @@ function review() {
       ${row("<b>Total sugar shipped</b>", "<b>" + t.totalMT.toFixed(2) + " MT</b>")}
       ${row(`Final molasses rail cars (${t.fmCars})`, t.fmMT.toFixed(2) + " MT")}
     </table>
-    <div class="sum-h">Other</div>
+    <div class="sum-h">Truck &amp; rail car loads (${state.loads.length}) — ${t.delayed} delayed, ${fmtMin(t.delayMin)}</div>
     <table class="sum-tbl">
-      ${row("Packaged produced", t.pkgProdMT.toFixed(2) + " MT")}
-      ${row(`Molasses trucks unloaded (${state.molasses.length})`, t.molMT.toFixed(2) + " MT")}
-      ${row(`Downtime (${state.downtime.length} events)`, (t.dtMin / 60).toFixed(2) + " hr")}
-      ${row(`Delayed loads (${t.delayed})`, fmtMin(t.delayMin))}
-      ${row("Photos to upload", photoCount)}
+      ${state.loads.map((l, i) => row(
+        `#${i + 1} ${esc(l.type)} — ${esc(l.unitNo)}${l.customer ? "<br><small>" + esc(l.customer) + (l.bol ? " · BOL " + esc(l.bol) : "") + "</small>" : ""}`,
+        `${num(l.mt).toFixed(2)} MT<br><small>${esc(l.start)}–${esc(l.end)} (${fmtMin(minutesBetween(l.start, l.end))})`
+          + (l.status === "Partial" ? `<br><span style="color:var(--red)">Partial: ${esc(l.partialNote)}</span>` : "")
+          + (num(l.delayMin) ? `<br><span style="color:var(--red)">Delay ${num(l.delayMin)} min: ${esc(l.delayReason)}${l.delayNote ? " — " + esc(l.delayNote) : ""}</span>` : "")
+          + `<br>${l.ticket ? "📷 ticket attached" : ""}</small>`)).join("") || row("No loads this shift", "")}
     </table>
+    <div class="sum-h">Totes &amp; bags — produced / shipped</div>
+    <table class="sum-tbl">
+      ${PACKAGED.map(p => row(esc(p.label), `${num($("pp-" + p.key).value)} / ${num($("ps-" + p.key).value)}`)).join("")}
+      ${row("<b>Total MT</b>", `<b>${t.pkgProdMT.toFixed(2)} / ${t.pkgShipMT.toFixed(2)}</b>`)}
+    </table>
+    <div class="sum-h">Molasses trucks unloaded (${state.molasses.length}) — ${t.molMT.toFixed(2)} MT</div>
+    <table class="sum-tbl">
+      ${state.molasses.map((m, i) => row(`#${i + 1} ${esc(m.truckNo) || "Truck"}${m.supplier ? " — " + esc(m.supplier) : ""}${m.ticket ? "<br><small>Ticket " + esc(m.ticket) + "</small>" : ""}`,
+        `${num(m.mt).toFixed(2)} MT${m.start || m.end ? `<br><small>${esc(m.start)}–${esc(m.end)} (${fmtMin(minutesBetween(m.start, m.end))})</small>` : ""}`)).join("") || row("None this shift", "")}
+    </table>
+    <div class="sum-h">End-of-shift inventory</div>
+    <table class="sum-tbl">
+      ${INVENTORY.map(i => row(esc(i.label), `${num($("inv-" + i.key).value)} ${i.unit}`)).join("")}
+    </table>
+    <div class="sum-h">Packaging supplies</div>
+    <table class="sum-tbl">
+      ${SUPPLIES.map(i => row(esc(i.label), `${num($("sup-" + i.key).value)} ${i.unit}`)).join("")}
+    </table>
+    <div class="sum-h">Downtime (${state.downtime.length}) — ${(t.dtMin / 60).toFixed(2)} h lost</div>
+    <table class="sum-tbl">
+      ${state.downtime.map((d, i) => row(`#${i + 1} ${esc(d.category)} — ${esc(d.area)}<br><small>${esc(d.description)}${d.action ? "<br>Action: " + esc(d.action) : ""}</small>`,
+        `${fmtMin(minutesBetween(d.start, d.end))}<br><small>${esc(d.start)}–${esc(d.end)}</small>`)).join("") || row("None reported", "")}
+    </table>
+    <div class="sum-h">Housekeeping &amp; dome returns</div>
+    <table class="sum-tbl">
+      ${row("Reject totes", num($("h-rejectTotes").value) + ($("h-rejectToDome").checked ? " — returned to dome" : num($("h-rejectTotes").value) ? ' — <span style="color:var(--red)">NOT returned</span>' : ""))}
+      ${row("Sifter-over bags", num($("h-sifterBags").value) + ($("h-sifterToDome").checked ? " — returned to dome" : num($("h-sifterBags").value) ? ' — <span style="color:var(--red)">NOT returned</span>' : ""))}
+      ${row("Photos: control room / loading station / warehouse / dome", [state.photos.controlRoom, state.photos.loadingStation, state.photos.warehouse, state.photos.dome].map(p => p.length).join(" / "))}
+      ${$("h-notes").value.trim() ? row("Housekeeping notes", esc($("h-notes").value.trim())) : ""}
+      ${row("Total photos to upload", photoCount)}
+    </table>
+    ${$("s-notes").value.trim() ? `<div class="sum-h">Shift notes</div><p style="white-space:pre-wrap">${esc($("s-notes").value.trim())}</p>` : ""}
     <p class="hint">Once submitted the report goes to the Google Sheet and can't be edited from here.</p>`;
   foot.innerHTML = `<button class="btn" onclick="closeModal('review-modal')">Back</button><button class="btn primary" onclick="doSubmit()">Submit to Google Sheets</button>`;
   openModal("review-modal");
